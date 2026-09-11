@@ -1,0 +1,13 @@
+SISTEMA DE CONTROL DE EMPEÑOS DE TARJETAS (VERSIÓN ACTUALIZADA V2)
+------------------------------------------------------------------
+
+¡Nuevas funciones agregadas!
+
+1. BOTÓN DE EDITAR (✏️):
+   Ahora puedes modificar el nombre, teléfono, cédula, fecha o monto de cualquier cliente si cometiste un error.
+
+2. BOTÓN DE ELIMINAR (🗑️):
+   Puedes borrar por completo a un cliente del registro con un solo clic y confirmación de seguridad.
+
+3. BOTÓN DE SALDAR Y REENGANCHE (+ Extra):
+   Sigue contando con la opción de agregar dinero extra o marcar la tarjeta como devuelta.
