@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Empeños - Con Buscador y Fotos</title>
+    <title>Control de Empeños - Con Vencimiento y Extras</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Librerías de Firebase (v8) -->
@@ -18,7 +18,7 @@
         .brand-icon { width: 40px; height: 40px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; }
         .nav-item { display: flex; align-items: center; padding: 12px 16px; color: #94a3b8; border-radius: 8px; cursor: pointer; border: none; background: transparent; width: 100%; text-align: left; font-size: 14px; margin-bottom: 8px; }
         .nav-item.active { background: #1e293b; color: #fff; border-left: 4px solid var(--primary); }
-        .main-wrapper { margin-left: 260px; flex: 1; padding: 32px; max-width: 1200px; }
+        .main-wrapper { margin-left: 260px; flex: 1; padding: 32px; max-width: 1250px; }
         header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: center; }
         .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 32px; }
         .metric-card { background: var(--card-bg); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border); }
@@ -36,12 +36,15 @@
         .btn-submit { background: var(--primary); color: white; padding: 12px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; width: 100%; }
         .btn-cancel { background: #64748b; color: white; padding: 12px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; width: 100%; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
         .badge-warning { background: #fef3c7; color: #92400e; }
-        .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; margin-right: 4px; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; margin-right: 2px; }
         .btn-editar { background: #f59e0b; color: white; }
         .btn-eliminar { background: #ef4444; color: white; }
+        .btn-extra { background: #10b981; color: white; }
         .img-link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 12px; cursor: pointer; }
         @media (max-width: 768px) { body { flex-direction: column; } .sidebar { width: 100%; height: auto; position: relative; } .main-wrapper { margin-left: 0; padding: 16px; } .form-grid { grid-template-columns: 1fr; } .form-group.full-width { grid-column: span 1; } }
     </style>
@@ -80,7 +83,7 @@
             <div style="overflow-x:auto;">
                 <table>
                     <thead>
-                        <tr><th>Cliente</th><th>Cédula</th><th>Tarjeta</th><th>Monto</th><th>Documentos</th></tr>
+                        <tr><th>Cliente</th><th>Cédula</th><th>Tarjeta</th><th>Monto Total</th><th>Documentos</th><th>Vencimiento</th></tr>
                     </thead>
                     <tbody id="tabla-resumen"></tbody>
                 </table>
@@ -105,9 +108,20 @@
                             <option value="Otra">Otra</option>
                         </select>
                     </div>
-                    <div class="form-group"><label>Monto Prestado (RD$) *</label><input type="number" id="monto" value="12000" required></div>
-                    <div class="form-group"><label>Fecha Inicio *</label><input type="date" id="fecha-inicio" required></div>
+                    <div class="form-group"><label>Monto Prestado Inicial (RD$) *</label><input type="number" id="monto" value="12000" required></div>
+                    <div class="form-group"><label>Monto Extra Adicional (RD$)</label><input type="number" id="extras" value="0"></div>
                     
+                    <div class="form-group"><label>Fecha Inicio *</label><input type="date" id="fecha-inicio" required></div>
+                    <div class="form-group">
+                        <label>Tiempo de Empeño *</label>
+                        <select id="duracion-anos" required>
+                            <option value="1">1 Año</option>
+                            <option value="2">2 Años</option>
+                            <option value="3">3 Años</option>
+                            <option value="5">5 Años</option>
+                        </select>
+                    </div>
+
                     <div class="form-group"><label>Foto Cédula</label><input type="file" id="foto-cedula" accept="image/*"></div>
                     <div class="form-group"><label>Foto Tarjeta</label><input type="file" id="foto-tarjeta" accept="image/*"></div>
 
@@ -129,7 +143,15 @@
             <div style="overflow-x:auto;">
                 <table>
                     <thead>
-                        <tr><th>Cliente</th><th>Contacto</th><th>Tarjeta</th><th>Monto</th><th>Fotos</th><th>Acciones</th></tr>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Contacto</th>
+                            <th>Tarjeta</th>
+                            <th>Monto Total</th>
+                            <th>Fotos</th>
+                            <th>Acciones</th>
+                            <th>Vencimiento</th>
+                        </tr>
                     </thead>
                     <tbody id="tabla-clientes"></tbody>
                 </table>
@@ -170,7 +192,6 @@
             }
         }
 
-        // Convierte imágenes localmente sin necesidad de Firebase Storage
         function fileToBase64(file) {
             return new Promise((resolve) => {
                 if (!file) return resolve('');
@@ -190,8 +211,10 @@
             try {
                 const editId = document.getElementById('edit-id').value;
                 const inicio = new Date(document.getElementById('fecha-inicio').value);
+                const anos = parseInt(document.getElementById('duracion-anos').value) || 1;
+                
                 const vencimiento = new Date(inicio);
-                vencimiento.setFullYear(vencimiento.getFullYear() + 1);
+                vencimiento.setFullYear(vencimiento.getFullYear() + anos);
 
                 const fileCedula = document.getElementById('foto-cedula').files[0];
                 const fileTarjeta = document.getElementById('foto-tarjeta').files[0];
@@ -207,8 +230,10 @@
                     cedula: document.getElementById('cedula').value,
                     telefono: document.getElementById('telefono').value,
                     tarjeta: document.getElementById('tipo-tarjeta').value,
-                    monto: parseFloat(document.getElementById('monto').value),
+                    monto: parseFloat(document.getElementById('monto').value) || 0,
+                    extras: parseFloat(document.getElementById('extras').value) || 0,
                     fechaInicio: inicio.toISOString().split('T')[0],
+                    duracionAnos: anos,
                     fechaVencimiento: vencimiento.toISOString().split('T')[0],
                     notas: document.getElementById('notas').value,
                     urlCedula: urlCedula,
@@ -219,7 +244,6 @@
                 if (editId) {
                     await db.ref('clientes/' + editId).update(payload);
                 } else {
-                    payload.extras = 0;
                     await db.ref('clientes').push(payload);
                 }
 
@@ -233,6 +257,22 @@
             }
         });
 
+        function agregarExtraRapido(id) {
+            const c = clientesMap[id];
+            if (!c) return;
+            const extraActual = c.extras || 0;
+            const nuevoExtraStr = prompt(`Agregar monto extra a ${c.nombre}:\nExtra actual: RD$ ${extraActual.toLocaleString()}\n\n¿Cuánto dinero extra va a retirar?`, "1000");
+            
+            if (nuevoExtraStr !== null) {
+                const adicional = parseFloat(nuevoExtraStr) || 0;
+                if (adicional > 0) {
+                    const totalExtras = extraActual + adicional;
+                    db.ref('clientes/' + id).update({ extras: totalExtras });
+                    alert(`¡Se agregaron RD$ ${adicional.toLocaleString()} extras a ${c.nombre}!`);
+                }
+            }
+        }
+
         function editarCliente(id) {
             const c = clientesMap[id];
             if (!c) return;
@@ -242,7 +282,9 @@
             document.getElementById('telefono').value = c.telefono;
             document.getElementById('tipo-tarjeta').value = c.tarjeta;
             document.getElementById('monto').value = c.monto;
+            document.getElementById('extras').value = c.extras || 0;
             document.getElementById('fecha-inicio').value = c.fechaInicio;
+            document.getElementById('duracion-anos').value = c.duracionAnos || 1;
             document.getElementById('notas').value = c.notas || '';
             document.getElementById('btn-save-form').innerText = "Actualizar Cambios";
             document.getElementById('btn-cancel-edit').style.display = "block";
@@ -259,6 +301,8 @@
             document.getElementById('edit-id').value = '';
             document.getElementById('empeno-form').reset();
             document.getElementById('fecha-inicio').valueAsDate = new Date();
+            document.getElementById('duracion-anos').value = "1";
+            document.getElementById('extras').value = "0";
             document.getElementById('btn-save-form').innerText = "Guardar de Una Vez";
             document.getElementById('btn-cancel-edit').style.display = "none";
         }
@@ -272,6 +316,7 @@
         function renderData() {
             const keys = Object.keys(clientesMap);
             const query = (document.getElementById('input-buscar')?.value || '').toLowerCase().trim();
+            const hoyStr = new Date().toISOString().split('T')[0];
 
             let totalDinero = 0;
             let totalTarjetas = 0;
@@ -283,10 +328,22 @@
 
             keys.forEach(id => {
                 const c = clientesMap[id];
-                const montoTotal = c.monto + (c.extras || 0);
+                const montoInicial = c.monto || 0;
+                const extras = c.extras || 0;
+                const montoTotal = montoInicial + extras;
 
                 const linkCedula = c.urlCedula ? `<span onclick="abrirFoto('${c.urlCedula}')" class="img-link">🪪 Cédula</span>` : 'Sin foto';
                 const linkTarjeta = c.urlTarjeta ? `<span onclick="abrirFoto('${c.urlTarjeta}')" class="img-link">💳 Tarjeta</span>` : 'Sin foto';
+
+                // Calcular estado de vencimiento
+                let badgeVencimiento = `<span class="badge badge-success">${c.fechaVencimiento}</span>`;
+                if (c.fechaVencimiento && c.fechaVencimiento < hoyStr) {
+                    badgeVencimiento = `<span class="badge badge-danger">Vencido (${c.fechaVencimiento})</span>`;
+                }
+
+                const desgloseMonto = extras > 0 
+                    ? `RD$ ${montoTotal.toLocaleString()}<br><small style="color:#10b981;">(Base: ${montoInicial} + Extra: ${extras})</small>`
+                    : `RD$ ${montoTotal.toLocaleString()}`;
 
                 if (c.estado === 'Activo') {
                     totalDinero += montoTotal;
@@ -296,8 +353,9 @@
                             <td><strong>${c.nombre}</strong></td>
                             <td>${c.cedula}</td>
                             <td><span class="badge badge-warning">${c.tarjeta}</span></td>
-                            <td>RD$ ${montoTotal.toLocaleString()}</td>
+                            <td>${desgloseMonto}</td>
                             <td>${linkCedula} | ${linkTarjeta}</td>
+                            <td>${badgeVencimiento}</td>
                         </tr>
                     `;
                 }
@@ -313,12 +371,14 @@
                             <td><strong>${c.nombre}</strong><br><small>${c.cedula}</small></td>
                             <td>${c.telefono}</td>
                             <td><span class="badge badge-warning">${c.tarjeta}</span></td>
-                            <td>RD$ ${montoTotal.toLocaleString()}</td>
+                            <td>${desgloseMonto}</td>
                             <td>${linkCedula}<br>${linkTarjeta}</td>
                             <td>
+                                <button class="btn-sm btn-extra" onclick="agregarExtraRapido('${id}')" title="Agregar extra">+ Extra</button>
                                 <button class="btn-sm btn-editar" onclick="editarCliente('${id}')">✏️ Editar</button>
                                 <button class="btn-sm btn-eliminar" onclick="eliminarCliente('${id}')">🗑️ Eliminar</button>
                             </td>
+                            <td>${badgeVencimiento}</td>
                         </tr>
                     `;
                 }
