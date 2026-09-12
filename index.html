@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Empeños - Mercedes Segura</title>
+    <title>Control de Empeños - Con Buscador y Fotos</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Librerías de Firebase -->
+    <!-- Librerías de Firebase (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
@@ -125,7 +125,6 @@
         <div id="section-clientes" class="section-panel">
             <h3 style="margin-bottom:16px;">Directorio Completo</h3>
             
-            <!-- Barra de búsqueda agregada -->
             <input type="text" id="input-buscar" class="search-input" placeholder="🔍 Buscar por nombre, cédula, teléfono o tarjeta..." onkeyup="renderData()">
 
             <div style="overflow-x:auto;">
@@ -140,15 +139,12 @@
     </div>
 
     <script>
+        // Configuración actualizada del nuevo proyecto Firebase
         const firebaseConfig = {
-            apiKey: "AIzaSyByMLDKbuSrrS2Up4t4y0t2gzM0zGVbn0*",
-            authDomain: "sistemaempenostarjetasv2.firebaseapp.com",
-            databaseURL: "https://sistemaempenostarjetasv2-default-rtdb.firebaseio.com",
-            projectId: "sistemaempenostarjetasv2",
-            storageBucket: "sistemaempenostarjetasv2.firebasestorage.app",
-            messagingSenderId: "246024972187",
-            appId: "1:246024972187:web:e6bed8aa218s6d7aaa23e",
-            measurementId: "G-MVPJN172E6"
+            authDomain: "sistemaempenostarjetasv2-16ee7.firebaseapp.com",
+            databaseURL: "https://sistemaempenostarjetasv2-16ee7-default-rtdb.firebaseio.com",
+            projectId: "sistemaempenostarjetasv2-16ee7",
+            storageBucket: "sistemaempenostarjetasv2-16ee7.firebasestorage.app"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -295,7 +291,6 @@
                     `;
                 }
 
-                // Filtrar según el término buscado
                 const matchNombre = c.nombre.toLowerCase().includes(query);
                 const matchCedula = c.cedula.toLowerCase().includes(query);
                 const matchTelefono = c.telefono.toLowerCase().includes(query);
