@@ -9,7 +9,6 @@
     <!-- Librerías de Firebase (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
@@ -43,7 +42,7 @@
         .btn-sm { padding: 6px 10px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: 500; margin-right: 4px; }
         .btn-editar { background: #f59e0b; color: white; }
         .btn-eliminar { background: #ef4444; color: white; }
-        .img-link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 12px; }
+        .img-link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 12px; cursor: pointer; }
         @media (max-width: 768px) { body { flex-direction: column; } .sidebar { width: 100%; height: auto; position: relative; } .main-wrapper { margin-left: 0; padding: 16px; } .form-grid { grid-template-columns: 1fr; } .form-group.full-width { grid-column: span 1; } }
     </style>
 </head>
@@ -114,7 +113,7 @@
 
                     <div class="form-group full-width"><label>Notas</label><input type="text" id="notas"></div>
                     <div class="form-group full-width" style="display:flex; gap:10px;">
-                        <button type="submit" class="btn-submit" id="btn-save-form">Guardar en la Nube</button>
+                        <button type="submit" class="btn-submit" id="btn-save-form">Guardar de Una Vez</button>
                         <button type="button" class="btn-cancel" id="btn-cancel-edit" style="display:none;" onclick="resetForm()">Cancelar</button>
                     </div>
                 </div>
@@ -139,17 +138,14 @@
     </div>
 
     <script>
-        // Configuración actualizada del nuevo proyecto Firebase
         const firebaseConfig = {
             authDomain: "sistemaempenostarjetasv2-16ee7.firebaseapp.com",
             databaseURL: "https://sistemaempenostarjetasv2-16ee7-default-rtdb.firebaseio.com",
-            projectId: "sistemaempenostarjetasv2-16ee7",
-            storageBucket: "sistemaempenostarjetasv2-16ee7.firebasestorage.app"
+            projectId: "sistemaempenostarjetasv2-16ee7"
         };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const storage = firebase.storage();
         let clientesMap = {};
 
         document.getElementById('fecha-inicio').valueAsDate = new Date();
@@ -174,58 +170,67 @@
             }
         }
 
-        async function uploadFile(file, folder) {
-            if (!file) return '';
-            const ref = storage.ref(`${folder}/${Date.now()}_${file.name}`);
-            await ref.put(file);
-            return await ref.getDownloadURL();
+        // Convierte imágenes localmente sin necesidad de Firebase Storage
+        function fileToBase64(file) {
+            return new Promise((resolve) => {
+                if (!file) return resolve('');
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => resolve('');
+                reader.readAsDataURL(file);
+            });
         }
 
         document.getElementById('empeno-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btnSave = document.getElementById('btn-save-form');
-            btnSave.innerText = "Subiendo fotos y guardando...";
+            btnSave.innerText = "Guardando...";
             btnSave.disabled = true;
 
-            const editId = document.getElementById('edit-id').value;
-            const inicio = new Date(document.getElementById('fecha-inicio').value);
-            const vencimiento = new Date(inicio);
-            vencimiento.setFullYear(vencimiento.getFullYear() + 1);
+            try {
+                const editId = document.getElementById('edit-id').value;
+                const inicio = new Date(document.getElementById('fecha-inicio').value);
+                const vencimiento = new Date(inicio);
+                vencimiento.setFullYear(vencimiento.getFullYear() + 1);
 
-            const fileCedula = document.getElementById('foto-cedula').files[0];
-            const fileTarjeta = document.getElementById('foto-tarjeta').files[0];
+                const fileCedula = document.getElementById('foto-cedula').files[0];
+                const fileTarjeta = document.getElementById('foto-tarjeta').files[0];
 
-            let urlCedula = editId && clientesMap[editId] ? clientesMap[editId].urlCedula || '' : '';
-            let urlTarjeta = editId && clientesMap[editId] ? clientesMap[editId].urlTarjeta || '' : '';
+                let urlCedula = editId && clientesMap[editId] ? clientesMap[editId].urlCedula || '' : '';
+                let urlTarjeta = editId && clientesMap[editId] ? clientesMap[editId].urlTarjeta || '' : '';
 
-            if (fileCedula) urlCedula = await uploadFile(fileCedula, 'cedulas');
-            if (fileTarjeta) urlTarjeta = await uploadFile(fileTarjeta, 'tarjetas');
+                if (fileCedula) urlCedula = await fileToBase64(fileCedula);
+                if (fileTarjeta) urlTarjeta = await fileToBase64(fileTarjeta);
 
-            const payload = {
-                nombre: document.getElementById('nombre').value,
-                cedula: document.getElementById('cedula').value,
-                telefono: document.getElementById('telefono').value,
-                tarjeta: document.getElementById('tipo-tarjeta').value,
-                monto: parseFloat(document.getElementById('monto').value),
-                fechaInicio: inicio.toISOString().split('T')[0],
-                fechaVencimiento: vencimiento.toISOString().split('T')[0],
-                notas: document.getElementById('notas').value,
-                urlCedula: urlCedula,
-                urlTarjeta: urlTarjeta,
-                estado: 'Activo'
-            };
+                const payload = {
+                    nombre: document.getElementById('nombre').value,
+                    cedula: document.getElementById('cedula').value,
+                    telefono: document.getElementById('telefono').value,
+                    tarjeta: document.getElementById('tipo-tarjeta').value,
+                    monto: parseFloat(document.getElementById('monto').value),
+                    fechaInicio: inicio.toISOString().split('T')[0],
+                    fechaVencimiento: vencimiento.toISOString().split('T')[0],
+                    notas: document.getElementById('notas').value,
+                    urlCedula: urlCedula,
+                    urlTarjeta: urlTarjeta,
+                    estado: 'Activo'
+                };
 
-            if (editId) {
-                db.ref('clientes/' + editId).update(payload);
-            } else {
-                payload.extras = 0;
-                db.ref('clientes').push(payload);
+                if (editId) {
+                    await db.ref('clientes/' + editId).update(payload);
+                } else {
+                    payload.extras = 0;
+                    await db.ref('clientes').push(payload);
+                }
+
+                resetForm();
+                switchTab('clientes');
+            } catch (err) {
+                alert("Error guardando datos: " + err.message);
+            } finally {
+                btnSave.innerText = "Guardar de Una Vez";
+                btnSave.disabled = false;
             }
-
-            btnSave.innerText = "Guardar en la Nube";
-            btnSave.disabled = false;
-            resetForm();
-            switchTab('clientes');
         });
 
         function editarCliente(id) {
@@ -254,8 +259,14 @@
             document.getElementById('edit-id').value = '';
             document.getElementById('empeno-form').reset();
             document.getElementById('fecha-inicio').valueAsDate = new Date();
-            document.getElementById('btn-save-form').innerText = "Guardar en la Nube";
+            document.getElementById('btn-save-form').innerText = "Guardar de Una Vez";
             document.getElementById('btn-cancel-edit').style.display = "none";
+        }
+
+        function abrirFoto(base64Data) {
+            if (!base64Data) return;
+            const win = window.open("");
+            win.document.write(`<img src="${base64Data}" style="max-width:100%; height:auto;" />`);
         }
 
         function renderData() {
@@ -274,8 +285,8 @@
                 const c = clientesMap[id];
                 const montoTotal = c.monto + (c.extras || 0);
 
-                const linkCedula = c.urlCedula ? `<a href="${c.urlCedula}" target="_blank" class="img-link">🪪 Cédula</a>` : 'Sin foto';
-                const linkTarjeta = c.urlTarjeta ? `<a href="${c.urlTarjeta}" target="_blank" class="img-link">💳 Tarjeta</a>` : 'Sin foto';
+                const linkCedula = c.urlCedula ? `<span onclick="abrirFoto('${c.urlCedula}')" class="img-link">🪪 Cédula</span>` : 'Sin foto';
+                const linkTarjeta = c.urlTarjeta ? `<span onclick="abrirFoto('${c.urlTarjeta}')" class="img-link">💳 Tarjeta</span>` : 'Sin foto';
 
                 if (c.estado === 'Activo') {
                     totalDinero += montoTotal;
