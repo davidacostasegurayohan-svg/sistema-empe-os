@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Empeños - Con Vencimiento y Extras</title>
+    <title>Control de Empeños - Sistema Avanzado</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Librerías de Firebase (v8) -->
@@ -30,7 +30,7 @@
         .form-group { display: flex; flex-direction: column; gap: 6px; }
         .form-group.full-width { grid-column: span 2; }
         label { font-size: 13px; font-weight: 600; }
-        input, select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+        input, select, textarea { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
         .search-input { width: 100%; padding: 12px 16px; font-size: 15px; border-radius: 8px; border: 2px solid var(--primary); margin-bottom: 20px; outline: none; background-color: #f1f5f9; }
         .search-input:focus { background-color: #ffffff; border-color: #1d4ed8; }
         .btn-submit { background: var(--primary); color: white; padding: 12px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; width: 100%; }
@@ -46,6 +46,14 @@
         .btn-eliminar { background: #ef4444; color: white; }
         .btn-extra { background: #10b981; color: white; }
         .img-link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 12px; cursor: pointer; }
+
+        /* Modal / Módulo de Extras */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 200; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: white; width: 90%; max-width: 600px; border-radius: 12px; padding: 24px; max-height: 90vh; overflow-y: auto; position: relative; }
+        .close-modal { position: absolute; top: 16px; right: 16px; font-size: 20px; cursor: pointer; border: none; background: transparent; font-weight: bold; }
+        .extra-item { background: #f8fafc; border-left: 4px solid var(--success); padding: 10px 14px; margin-bottom: 10px; border-radius: 4px; }
+
         @media (max-width: 768px) { body { flex-direction: column; } .sidebar { width: 100%; height: auto; position: relative; } .main-wrapper { margin-left: 0; padding: 16px; } .form-grid { grid-template-columns: 1fr; } .form-group.full-width { grid-column: span 1; } }
     </style>
 </head>
@@ -83,7 +91,7 @@
             <div style="overflow-x:auto;">
                 <table>
                     <thead>
-                        <tr><th>Cliente</th><th>Cédula</th><th>Tarjeta</th><th>Monto Total</th><th>Documentos</th><th>Vencimiento</th></tr>
+                        <tr><th>Cliente</th><th>Cédula</th><th>Tarjeta</th><th>N° Tarjeta</th><th>Monto Total</th><th>Documentos</th><th>Vencimiento</th></tr>
                     </thead>
                     <tbody id="tabla-resumen"></tbody>
                 </table>
@@ -108,24 +116,16 @@
                             <option value="Otra">Otra</option>
                         </select>
                     </div>
+                    <div class="form-group"><label>Número de Tarjeta</label><input type="text" id="num-tarjeta" placeholder="Ej: 4000 1234 5678 9010"></div>
                     <div class="form-group"><label>Monto Prestado Inicial (RD$) *</label><input type="number" id="monto" value="12000" required></div>
-                    <div class="form-group"><label>Monto Extra Adicional (RD$)</label><input type="number" id="extras" value="0"></div>
                     
-                    <div class="form-group"><label>Fecha Inicio *</label><input type="date" id="fecha-inicio" required></div>
-                    <div class="form-group">
-                        <label>Tiempo de Empeño *</label>
-                        <select id="duracion-anos" required>
-                            <option value="1">1 Año</option>
-                            <option value="2">2 Años</option>
-                            <option value="3">3 Años</option>
-                            <option value="5">5 Años</option>
-                        </select>
-                    </div>
+                    <div class="form-group"><label>Fecha de Inicio *</label><input type="date" id="fecha-inicio" required></div>
+                    <div class="form-group"><label>Fecha de Vencimiento *</label><input type="date" id="fecha-vencimiento" required></div>
 
                     <div class="form-group"><label>Foto Cédula</label><input type="file" id="foto-cedula" accept="image/*"></div>
                     <div class="form-group"><label>Foto Tarjeta</label><input type="file" id="foto-tarjeta" accept="image/*"></div>
 
-                    <div class="form-group full-width"><label>Notas</label><input type="text" id="notas"></div>
+                    <div class="form-group full-width"><label>Notas Generales</label><input type="text" id="notas"></div>
                     <div class="form-group full-width" style="display:flex; gap:10px;">
                         <button type="submit" class="btn-submit" id="btn-save-form">Guardar de Una Vez</button>
                         <button type="button" class="btn-cancel" id="btn-cancel-edit" style="display:none;" onclick="resetForm()">Cancelar</button>
@@ -138,7 +138,7 @@
         <div id="section-clientes" class="section-panel">
             <h3 style="margin-bottom:16px;">Directorio Completo</h3>
             
-            <input type="text" id="input-buscar" class="search-input" placeholder="🔍 Buscar por nombre, cédula, teléfono o tarjeta..." onkeyup="renderData()">
+            <input type="text" id="input-buscar" class="search-input" placeholder="🔍 Buscar por nombre, cédula, teléfono, tarjeta o N° tarjeta..." onkeyup="renderData()">
 
             <div style="overflow-x:auto;">
                 <table>
@@ -147,6 +147,7 @@
                             <th>Cliente</th>
                             <th>Contacto</th>
                             <th>Tarjeta</th>
+                            <th>N° Tarjeta</th>
                             <th>Monto Total</th>
                             <th>Fotos</th>
                             <th>Acciones</th>
@@ -155,6 +156,40 @@
                     </thead>
                     <tbody id="tabla-clientes"></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulo de Gestión de Extras (Modal) -->
+    <div id="modal-extra" class="modal-overlay">
+        <div class="modal-card">
+            <button class="close-modal" onclick="cerrarModalExtra()">✕</button>
+            <h3 id="modal-cliente-nombre" style="margin-bottom: 8px;">Módulo de Dinero Extra</h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom: 20px;">Registra una nueva entrega de dinero o revisa el historial del cliente.</p>
+            
+            <!-- Formulario para nuevo extra -->
+            <form id="form-nuevo-extra" style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                <input type="hidden" id="modal-cliente-id">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+                    <div>
+                        <label>Monto Solicitado (RD$) *</label>
+                        <input type="number" id="extra-monto" style="width:100%;" required placeholder="Ej: 2000">
+                    </div>
+                    <div>
+                        <label>Fecha y Hora</label>
+                        <input type="text" id="extra-fecha-hora" style="width:100%; background:#e2e8f0;" readonly>
+                    </div>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label>Nota / Motivo del Extra *</label>
+                    <textarea id="extra-nota" rows="2" style="width:100%; resize:none;" placeholder="Escribe la razón o motivo por el cual tomó este dinero extra..." required></textarea>
+                </div>
+                <button type="submit" class="btn-submit" style="background:var(--success);">+ Registrar Entrega Extra</button>
+            </form>
+
+            <h4 style="margin-bottom: 12px;">Historial de Entregas Extras</h4>
+            <div id="lista-historial-extras">
+                <p style="font-size: 13px; color: var(--text-muted);">No hay dinero extra registrado para este cliente.</p>
             </div>
         </div>
     </div>
@@ -170,7 +205,14 @@
         const db = firebase.database();
         let clientesMap = {};
 
-        document.getElementById('fecha-inicio').valueAsDate = new Date();
+        // Configurar fechas por defecto en formulario
+        const hoy = new Date();
+        document.getElementById('fecha-inicio').valueAsDate = hoy;
+        
+        // Fecha vencimiento sugerida (1 año) pero editable por el usuario
+        const unAnoDespues = new Date();
+        unAnoDespues.setFullYear(unAnoDespues.getFullYear() + 1);
+        document.getElementById('fecha-vencimiento').valueAsDate = unAnoDespues;
 
         db.ref('clientes').on('value', (snapshot) => {
             clientesMap = snapshot.val() || {};
@@ -210,12 +252,6 @@
 
             try {
                 const editId = document.getElementById('edit-id').value;
-                const inicio = new Date(document.getElementById('fecha-inicio').value);
-                const anos = parseInt(document.getElementById('duracion-anos').value) || 1;
-                
-                const vencimiento = new Date(inicio);
-                vencimiento.setFullYear(vencimiento.getFullYear() + anos);
-
                 const fileCedula = document.getElementById('foto-cedula').files[0];
                 const fileTarjeta = document.getElementById('foto-tarjeta').files[0];
 
@@ -230,11 +266,10 @@
                     cedula: document.getElementById('cedula').value,
                     telefono: document.getElementById('telefono').value,
                     tarjeta: document.getElementById('tipo-tarjeta').value,
+                    numTarjeta: document.getElementById('num-tarjeta').value || 'Sin número',
                     monto: parseFloat(document.getElementById('monto').value) || 0,
-                    extras: parseFloat(document.getElementById('extras').value) || 0,
-                    fechaInicio: inicio.toISOString().split('T')[0],
-                    duracionAnos: anos,
-                    fechaVencimiento: vencimiento.toISOString().split('T')[0],
+                    fechaInicio: document.getElementById('fecha-inicio').value,
+                    fechaVencimiento: document.getElementById('fecha-vencimiento').value,
                     notas: document.getElementById('notas').value,
                     urlCedula: urlCedula,
                     urlTarjeta: urlTarjeta,
@@ -257,21 +292,75 @@
             }
         });
 
-        function agregarExtraRapido(id) {
+        // Módulo Emergente para Extras
+        function abrirModalExtra(id) {
             const c = clientesMap[id];
             if (!c) return;
-            const extraActual = c.extras || 0;
-            const nuevoExtraStr = prompt(`Agregar monto extra a ${c.nombre}:\nExtra actual: RD$ ${extraActual.toLocaleString()}\n\n¿Cuánto dinero extra va a retirar?`, "1000");
+
+            document.getElementById('modal-cliente-id').value = id;
+            document.getElementById('modal-cliente-nombre').innerText = `Gestión de Extra: ${c.nombre}`;
+            document.getElementById('extra-monto').value = '';
+            document.getElementById('extra-nota').value = '';
             
-            if (nuevoExtraStr !== null) {
-                const adicional = parseFloat(nuevoExtraStr) || 0;
-                if (adicional > 0) {
-                    const totalExtras = extraActual + adicional;
-                    db.ref('clientes/' + id).update({ extras: totalExtras });
-                    alert(`¡Se agregaron RD$ ${adicional.toLocaleString()} extras a ${c.nombre}!`);
-                }
-            }
+            const ahora = new Date();
+            const fechaHoraTexto = ahora.toLocaleDateString('es-DO') + ' ' + ahora.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('extra-fecha-hora').value = fechaHoraTexto;
+
+            renderHistorialExtras(id);
+            document.getElementById('modal-extra').classList.add('active');
         }
+
+        function cerrarModalExtra() {
+            document.getElementById('modal-extra').classList.remove('active');
+        }
+
+        function renderHistorialExtras(id) {
+            const c = clientesMap[id];
+            const divHistorial = document.getElementById('lista-historial-extras');
+            
+            if (!c || !c.historialExtras || Object.keys(c.historialExtras).length === 0) {
+                divHistorial.innerHTML = '<p style="font-size: 13px; color: var(--text-muted);">No hay dinero extra registrado para este cliente.</p>';
+                return;
+            }
+
+            let html = '';
+            const extrasList = Object.values(c.historialExtras);
+            extrasList.reverse().forEach(item => {
+                html += `
+                    <div class="extra-item">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                            <strong>RD$ ${parseFloat(item.monto).toLocaleString()}</strong>
+                            <small style="color:var(--text-muted);">${item.fechaHora}</small>
+                        </div>
+                        <div style="font-size:13px; color:#334155;"><strong>Motivo/Nota:</strong> ${item.nota}</div>
+                    </div>
+                `;
+            });
+            divHistorial.innerHTML = html;
+        }
+
+        document.getElementById('form-nuevo-extra').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('modal-cliente-id').value;
+            const montoExtra = parseFloat(document.getElementById('extra-monto').value) || 0;
+            const fechaHora = document.getElementById('extra-fecha-hora').value;
+            const nota = document.getElementById('extra-nota').value;
+
+            if (montoExtra <= 0) return alert("Por favor ingresa un monto válido.");
+
+            const nuevoExtraObj = {
+                monto: montoExtra,
+                fechaHora: fechaHora,
+                nota: nota
+            };
+
+            await db.ref(`clientes/${id}/historialExtras`).push(nuevoExtraObj);
+            alert("¡Entrega de extra registrada correctamente!");
+            
+            document.getElementById('extra-monto').value = '';
+            document.getElementById('extra-nota').value = '';
+            renderHistorialExtras(id);
+        });
 
         function editarCliente(id) {
             const c = clientesMap[id];
@@ -281,10 +370,10 @@
             document.getElementById('cedula').value = c.cedula;
             document.getElementById('telefono').value = c.telefono;
             document.getElementById('tipo-tarjeta').value = c.tarjeta;
+            document.getElementById('num-tarjeta').value = c.numTarjeta || '';
             document.getElementById('monto').value = c.monto;
-            document.getElementById('extras').value = c.extras || 0;
             document.getElementById('fecha-inicio').value = c.fechaInicio;
-            document.getElementById('duracion-anos').value = c.duracionAnos || 1;
+            document.getElementById('fecha-vencimiento').value = c.fechaVencimiento || '';
             document.getElementById('notas').value = c.notas || '';
             document.getElementById('btn-save-form').innerText = "Actualizar Cambios";
             document.getElementById('btn-cancel-edit').style.display = "block";
@@ -300,9 +389,11 @@
         function resetForm() {
             document.getElementById('edit-id').value = '';
             document.getElementById('empeno-form').reset();
-            document.getElementById('fecha-inicio').valueAsDate = new Date();
-            document.getElementById('duracion-anos').value = "1";
-            document.getElementById('extras').value = "0";
+            const hoy = new Date();
+            document.getElementById('fecha-inicio').valueAsDate = hoy;
+            const unAnoDespues = new Date();
+            unAnoDespues.setFullYear(unAnoDespues.getFullYear() + 1);
+            document.getElementById('fecha-vencimiento').valueAsDate = unAnoDespues;
             document.getElementById('btn-save-form').innerText = "Guardar de Una Vez";
             document.getElementById('btn-cancel-edit').style.display = "none";
         }
@@ -329,20 +420,29 @@
             keys.forEach(id => {
                 const c = clientesMap[id];
                 const montoInicial = c.monto || 0;
-                const extras = c.extras || 0;
-                const montoTotal = montoInicial + extras;
+                
+                // Sumar todos los extras registrados
+                let totalExtras = 0;
+                if (c.historialExtras) {
+                    Object.values(c.historialExtras).forEach(ex => {
+                        totalExtras += parseFloat(ex.monto) || 0;
+                    });
+                }
+
+                const montoTotal = montoInicial + totalExtras;
+                const numTarjetaTexto = c.numTarjeta || 'Sin número';
 
                 const linkCedula = c.urlCedula ? `<span onclick="abrirFoto('${c.urlCedula}')" class="img-link">🪪 Cédula</span>` : 'Sin foto';
                 const linkTarjeta = c.urlTarjeta ? `<span onclick="abrirFoto('${c.urlTarjeta}')" class="img-link">💳 Tarjeta</span>` : 'Sin foto';
 
-                // Calcular estado de vencimiento
-                let badgeVencimiento = `<span class="badge badge-success">${c.fechaVencimiento}</span>`;
+                // Estado de vencimiento
+                let badgeVencimiento = `<span class="badge badge-success">${c.fechaVencimiento || 'Sin fecha'}</span>`;
                 if (c.fechaVencimiento && c.fechaVencimiento < hoyStr) {
                     badgeVencimiento = `<span class="badge badge-danger">Vencido (${c.fechaVencimiento})</span>`;
                 }
 
-                const desgloseMonto = extras > 0 
-                    ? `RD$ ${montoTotal.toLocaleString()}<br><small style="color:#10b981;">(Base: ${montoInicial} + Extra: ${extras})</small>`
+                const desgloseMonto = totalExtras > 0 
+                    ? `RD$ ${montoTotal.toLocaleString()}<br><small style="color:#10b981;">(Base: ${montoInicial} + Extras: ${totalExtras})</small>`
                     : `RD$ ${montoTotal.toLocaleString()}`;
 
                 if (c.estado === 'Activo') {
@@ -353,6 +453,7 @@
                             <td><strong>${c.nombre}</strong></td>
                             <td>${c.cedula}</td>
                             <td><span class="badge badge-warning">${c.tarjeta}</span></td>
+                            <td><code>${numTarjetaTexto}</code></td>
                             <td>${desgloseMonto}</td>
                             <td>${linkCedula} | ${linkTarjeta}</td>
                             <td>${badgeVencimiento}</td>
@@ -364,17 +465,19 @@
                 const matchCedula = c.cedula.toLowerCase().includes(query);
                 const matchTelefono = c.telefono.toLowerCase().includes(query);
                 const matchTarjeta = c.tarjeta.toLowerCase().includes(query);
+                const matchNumTarjeta = numTarjetaTexto.toLowerCase().includes(query);
 
-                if (query === '' || matchNombre || matchCedula || matchTelefono || matchTarjeta) {
+                if (query === '' || matchNombre || matchCedula || matchTelefono || matchTarjeta || matchNumTarjeta) {
                     tbodyClientes.innerHTML += `
                         <tr>
                             <td><strong>${c.nombre}</strong><br><small>${c.cedula}</small></td>
                             <td>${c.telefono}</td>
                             <td><span class="badge badge-warning">${c.tarjeta}</span></td>
+                            <td><code>${numTarjetaTexto}</code></td>
                             <td>${desgloseMonto}</td>
                             <td>${linkCedula}<br>${linkTarjeta}</td>
                             <td>
-                                <button class="btn-sm btn-extra" onclick="agregarExtraRapido('${id}')" title="Agregar extra">+ Extra</button>
+                                <button class="btn-sm btn-extra" onclick="abrirModalExtra('${id}')" title="Gestión de extras">+ Extra</button>
                                 <button class="btn-sm btn-editar" onclick="editarCliente('${id}')">✏️ Editar</button>
                                 <button class="btn-sm btn-eliminar" onclick="eliminarCliente('${id}')">🗑️ Eliminar</button>
                             </td>
