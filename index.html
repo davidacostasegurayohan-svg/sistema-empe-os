@@ -404,9 +404,10 @@
             win.document.write(`<img src="${base64Data}" style="max-width:100%; height:auto;" />`);
         }
 
+        // BÚSQUEDA CORREGIDA Y FLEXIBLE
         function renderData() {
             const keys = Object.keys(clientesMap);
-            const query = (document.getElementById('input-buscar')?.value || '').toLowerCase().trim();
+            const query = (document.getElementById('input-buscar')?.value || '').toLowerCase().trim().replace(/\s+/g, ' ');
             const hoyStr = new Date().toISOString().split('T')[0];
 
             let totalDinero = 0;
@@ -461,11 +462,21 @@
                     `;
                 }
 
-                const matchNombre = c.nombre.toLowerCase().includes(query);
-                const matchCedula = c.cedula.toLowerCase().includes(query);
-                const matchTelefono = c.telefono.toLowerCase().includes(query);
-                const matchTarjeta = c.tarjeta.toLowerCase().includes(query);
-                const matchNumTarjeta = numTarjetaTexto.toLowerCase().includes(query);
+                // Limpieza de campos para búsqueda ultra flexible
+                const nombreCliente = (c.nombre || '').toLowerCase().trim().replace(/\s+/g, ' ');
+                const cedulaCliente = (c.cedula || '').toLowerCase().replace(/[-_ ]/g, ''); 
+                const telefonoCliente = (c.telefono || '').toLowerCase().replace(/[-_ ]/g, '');
+                const tipoTarjetaCliente = (c.tarjeta || '').toLowerCase();
+                const numTarjetaCliente = (numTarjetaTexto).toLowerCase().replace(/[\s-_]/g, '');
+
+                const queryLimpia = query.replace(/[-_ ]/g, '');
+
+                // Coincidencias
+                const matchNombre = nombreCliente.includes(query);
+                const matchCedula = cedulaCliente.includes(queryLimpia);
+                const matchTelefono = telefonoCliente.includes(queryLimpia);
+                const matchTarjeta = tipoTarjetaCliente.includes(query);
+                const matchNumTarjeta = numTarjetaCliente.includes(queryLimpia);
 
                 if (query === '' || matchNombre || matchCedula || matchTelefono || matchTarjeta || matchNumTarjeta) {
                     tbodyClientes.innerHTML += `
