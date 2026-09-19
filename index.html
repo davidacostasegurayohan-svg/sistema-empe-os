@@ -404,10 +404,23 @@
             win.document.write(`<img src="${base64Data}" style="max-width:100%; height:auto;" />`);
         }
 
-        // BÚSQUEDA CORREGIDA Y FLEXIBLE
+        // Función para remover acentos y tildes (ej: "Andrés" -> "andres")
+        function limpiarTexto(str) {
+            return (str || '')
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .trim()
+                .replace(/\s+/g, ' ');
+        }
+
+        // BÚSQUEDA INSENSIBLE A TILDES, ESPACIOS Y FORMATO
         function renderData() {
             const keys = Object.keys(clientesMap);
-            const query = (document.getElementById('input-buscar')?.value || '').toLowerCase().trim().replace(/\s+/g, ' ');
+            const rawQuery = document.getElementById('input-buscar')?.value || '';
+            
+            const query = limpiarTexto(rawQuery);
+            const queryLimpia = query.replace(/[-_ ]/g, '');
             const hoyStr = new Date().toISOString().split('T')[0];
 
             let totalDinero = 0;
@@ -422,7 +435,6 @@
                 const c = clientesMap[id];
                 const montoInicial = c.monto || 0;
                 
-                // Sumar todos los extras registrados
                 let totalExtras = 0;
                 if (c.historialExtras) {
                     Object.values(c.historialExtras).forEach(ex => {
@@ -436,7 +448,6 @@
                 const linkCedula = c.urlCedula ? `<span onclick="abrirFoto('${c.urlCedula}')" class="img-link">🪪 Cédula</span>` : 'Sin foto';
                 const linkTarjeta = c.urlTarjeta ? `<span onclick="abrirFoto('${c.urlTarjeta}')" class="img-link">💳 Tarjeta</span>` : 'Sin foto';
 
-                // Estado de vencimiento
                 let badgeVencimiento = `<span class="badge badge-success">${c.fechaVencimiento || 'Sin fecha'}</span>`;
                 if (c.fechaVencimiento && c.fechaVencimiento < hoyStr) {
                     badgeVencimiento = `<span class="badge badge-danger">Vencido (${c.fechaVencimiento})</span>`;
@@ -462,14 +473,12 @@
                     `;
                 }
 
-                // Limpieza de campos para búsqueda ultra flexible
-                const nombreCliente = (c.nombre || '').toLowerCase().trim().replace(/\s+/g, ' ');
-                const cedulaCliente = (c.cedula || '').toLowerCase().replace(/[-_ ]/g, ''); 
-                const telefonoCliente = (c.telefono || '').toLowerCase().replace(/[-_ ]/g, '');
-                const tipoTarjetaCliente = (c.tarjeta || '').toLowerCase();
-                const numTarjetaCliente = (numTarjetaTexto).toLowerCase().replace(/[\s-_]/g, '');
-
-                const queryLimpia = query.replace(/[-_ ]/g, '');
+                // Limpieza de campos quitando acentos y espacios
+                const nombreCliente = limpiarTexto(c.nombre);
+                const cedulaCliente = limpiarTexto(c.cedula).replace(/[-_ ]/g, ''); 
+                const telefonoCliente = limpiarTexto(c.telefono).replace(/[-_ ]/g, '');
+                const tipoTarjetaCliente = limpiarTexto(c.tarjeta);
+                const numTarjetaCliente = limpiarTexto(numTarjetaTexto).replace(/[\s-_]/g, '');
 
                 // Coincidencias
                 const matchNombre = nombreCliente.includes(query);
